@@ -11,10 +11,14 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.clean import RE_CORRUPT, PATTERNS
-from src.data import build_text, load_train
+from agnews.clean import RE_CORRUPT, PATTERNS
+from agnews.data import build_text, load_train
 
-APPENDIX_ANY_BARE = 38_679       # 2 Sep, authoritative
+APPENDIX_ANY_BARE = 38_678       # four-way count, 3 Sep. The 2 Sep
+                                 # "correction" to 38,679 came from a
+                                 # `\\b`-less pattern retyped in audit.py,
+                                 # which matched row 20884: "Israel Strikes
+                                 # Hamas Camp; 13 Are Killed". Not corruption.
 TAIL_MAX_COUNT = 3
 TAIL_SAMPLE = 40
 

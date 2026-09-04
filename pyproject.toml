@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "agnews-classifier"
+version = "0.1.0"
+description = "AG News topic classification"
+authors = ["LuisMckellen <luismckellen777@gmail.com>"]
+packages = [{ include = "agnews", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.14"
+pandas = "^3.0.5"
+scikit-learn = "^1.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

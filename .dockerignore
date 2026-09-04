@@ -6,3 +6,4 @@ tests/
 .venv/
 __pycache__/
 *.ipynb
+poetry.lock
