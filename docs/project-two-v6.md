@@ -1,10 +1,13 @@
-# Project Two — Text Classification (v5)
+# Project Two — Text Classification (v6)
 
 Planned 31 Aug 2026. v3 same day after W3 pre-work. v4 on 1 Sep after
-reconciliation. **v5 on 2 Sep after the collision and markup audit.**
+reconciliation. v5 on 2 Sep after the collision and markup audit.
+**v6 on 4 Sep — propagation pass. This document was the one file the
+4 Sep corrections had not reached.**
 Runs W3–W12 (14 Sep – 22 Nov).
 
-Changes from v4 marked **[v5]**.
+Changes from v5 marked **[v6]**. v5 markers left in place where the
+content is unchanged.
 
 ---
 
@@ -35,6 +38,8 @@ texts are reworded, and a hard ceiling needs near-identical inputs.
 Three independent estimates, none sufficient alone:
 
 1. Syndication conflict rate — cheap, biased toward dual-category stories.
+   **[v6]** The 7/40 is now counted programmatically rather than eyeballed;
+   the value did not move.
 2. Blind ambiguity review, 100 random rows — bounds *reader* ambiguity,
    not accuracy. Labels came from a systematic process (which desk ran
    the story) that leaves traces in the text.
@@ -77,19 +82,64 @@ The overlap stands on its own evidence.
 **6. Paired comparison.** Same seed, same split, both models, spread of the
 per-seed *difference*. Bought 8× resolution in pre-work (0.0177 → 0.0022).
 
-**7. Auditing your own tables.** Balanced classes give a free identity: the
-mean of per-class rates must equal the overall rate. Session 1 published
-figures that failed it by 849 rows. **[v5]** Session 2 published a total
-that failed it by one row and recorded the check as *"holds to one row"* —
-a false pass. An exact identity has no tolerance.
+**7. Auditing your own tables — and auditing the audit.**
+Balanced classes give a free identity: with equal class sizes the per-class
+counts must sum to the total. Session 1 published figures that failed it by
+849 rows; that failure was real and the check earned its place.
 
-**8. [v5] Corruption as token collision, not token addition.** `39` never
-leaves the vocabulary after repair, because real 39s occur in news text.
-Document frequency falls 29,828 → 169 with a non-zero residual, and the
-two senses have diverging class profiles (apostrophe skews Business,
-numeric skews Sports). One weight served two meanings. That is the
-mechanism behind the 2×2 result, and it is a better story than "a noise
-token."
+**[v6] The v5 version of this entry is retired.** It read: *"Session 2
+published a total that failed it by one row and recorded the check as
+'holds to one row' — a false pass. An exact identity has no tolerance."*
+The total was **38,678 and always had been**. The 2 Sep "correction" to
+38,679 came from `audit.py`, which retyped `bare_named` without the `\b`
+that `clean.PATTERNS` carries; the looser pattern matches row 20884,
+*"Israel Strikes Hamas Camp; 13 Are Killed"* — a headline semicolon on a
+word ending in `amp`. Four-way count: canonical 38,678 under both strip
+settings, retyped 38,679 under both.
+
+Worse, the identity never had the resolution to adjudicate one row.
+Published as 4dp *rates*, it sits on a 3-row grid (30,000 × 0.0001), so
+7,601 and 7,602 both round to 0.2534 and the check carries roughly ±6
+rows. Three lessons replace the retired one:
+
+- **Publish the quantity the check runs on.** Counts, not rates. An audit
+  against rounded figures inherits their tolerance.
+- **Two checks agreeing is evidence only if they are independent.** A
+  false-positive regex and a rounding-limited identity both returned
+  38,679, for unrelated reasons, and the agreement read as confirmation.
+- **A correction is a claim**, needing the same provenance as the figure
+  it replaces. This one moved a right number to a wrong one and stood for
+  two days.
+
+**8. [v6] Corruption as token collision — the finding stands, the causal
+claim does not.**
+`39` never leaves the vocabulary after repair, because real 39s occur in
+news text. Presence was the wrong instrument; document frequency with a
+non-zero residual is the right one. Document frequency falls
+29,828 → 169, and the two senses have diverging class profiles
+(apostrophe skews Business, numeric skews Sports). One weight served two
+meanings. **[v6]** Under case-folding — which is what the vectorizer
+does — `lt`/`gt`/`amp` join them at residuals 18/11/8. They are
+collisions, not pure artifacts. Numerics are unaffected; digits have no
+case.
+
+**[v6] v5 claimed this collision was "the mechanism behind the 2×2
+result." It is not, and that claim is withdrawn.** The genuine sense of
+`39` is 169 rows against 29,659 corrupted — 175:1, 0.57% of the token's
+document frequency, 0.14% of the corpus. METHOD 23a killed the strip-list
+experiment at ~212 rows; 169 is smaller. A mechanism acting on 0.14% of
+rows cannot produce −0.0039 against a paired sd of 0.0022. The divergence
+is a fact about this corpus, and a population rather than a sample, so it
+has no error bars — but it is not a mechanism.
+
+What is left as the account: `#39;` occurs in 24.7% of rows, and A−B holds
+the model fixed while swapping test text. Two channels are available —
+the mis-aimed coefficient learned on the corrupted token, and L2
+renormalisation, since deleting a token rescales the row. C−D (−0.0002,
+3/5) carries channel 2 without channel 1, which bounds renormalisation
+below detection. So the account is the coefficient.
+**Caveat: C is a pre-fix `repair` arm and is superseded. Do not cite this
+account until the 2×2 is re-run.**
 
 ---
 
@@ -97,43 +147,68 @@ token."
 
 ### W3 (14–20 Sep) — Data and floor
 
-Pre-work done 31 Aug – 2 Sep. See LEARNINGS.md.
+Pre-work done 31 Aug – 4 Sep. See LEARNINGS.md.
 
 Done:
 - [x] Verification: shape, balance, nulls, duplicates, lengths
-- [x] Corruption analysis — **[v5] 32.23% (38,678 rows)**, class counts
-      11,529 / 10,851 / 8,697 / 7,601, 76.8% of corrupted rows carry the
-      lost apostrophe
+- [x] Corruption analysis — 32.23% (**38,678** rows). **[v6] Published as
+      per-class counts, rates derived:** Business 11,529 · Sports 10,851 ·
+      Sci-Tech 8,697 · World 7,601. 76.8% of corrupted rows carry the lost
+      apostrophe (29,696 / 38,678, recomputed 4 Sep; unmoved).
 - [x] Corruption 2×2 at n=5,000 — repair training text. **[v5] Superseded:
       the C/D arms used the pre-fix `repair`. Re-run required.**
-- [x] `clean.py` with `repair`, 8 tests passing
+- [x] `clean.py` with `repair`. **[v6] Boundary fix shipped 4 Sep**
+      (`_BOUNDARY = r" ?(?<!&)"`, token-neutral for `#39;`), with
+      `test_letter_entity_rejoins_word` written first and watched fail
+      7/25. **Suite is 25 tests**, not 8. `conftest.py` now raises on
+      zero-selected.
 - [x] Reconciliation of all published figures (1 Sep)
-- [x] **[v5]** Collision audit; markup audit; `src/data.py` as the single
-      definition of `text`
+- [x] **[v5]** Collision audit; markup audit; single definition of `text`
+- [x] **[v6] Case-parameterised collision re-run.** `lt`/`gt`/`amp`
+      residuals 0/0/1 → 18/11/8 under `case=False`. Reclassified as
+      collisions.
+- [x] **[v6] Four-way provenance count** (`00_provenance.py`) settling
+      38,678 against pattern and strip setting independently.
+- [x] **[v6] Frame rebuild.** `load.py` + `data.py` merged into one
+      `build_text`, labels 1–4 throughout, `class_name` in every table.
+      Every pattern imported from `clean.py`. Branch `frame`.
+- [x] **[v6] Corrections propagated** across LEARNINGS, METHOD,
+      data-appendix and this file. See `CORRECTIONS.md`.
 
 Remaining:
 
-- [ ] **[v5] Fix `repair` to consume the boundary space.** Bare entities
-      carry a space where the `&` was, so `Ch #225;vez` repaired to
-      `Ch ávez` — two tokens where the source has one. Add
-      `test_letter_entity_rejoins_word`.
-- [ ] **[v5] Re-run the corruption 2×2** with the fixed function. Keep the
-      old numbers in LEARNINGS with the reason they changed.
-- [ ] **[v5] Document-frequency residual check**, replacing the
-      `vocab_size` item. Vocabulary presence could never work: `39` occurs
-      naturally. Residual 0 = pure artifact; residual > 0 = collision
-      (applies with no tolerance — `amp` at residual 1 was wrongly
-      published as pure artifact). Run the table case-insensitively: the
-      vectorizer lowercases, and `lt`/`gt`/`amp` move to 18/11/8;
-      report only where the two senses' class profiles diverge.
-- [ ] **[v5] Re-run `lt`/`gt`/`amp` with `case=False`** — residual 0 under
-      case-sensitive matching, yet they survived in the lowercased
-      vocabulary.
-- [ ] **[v5] Markup strip experiment.** 5,241 rows (4.37%), class rate
-      0.0210 Sports vs 0.0746 Business — a 3.5× spread against ~1.5× for
-      entity corruption. Clears the paired resolution, so pre-register:
+- [ ] **[v6] Merge PR #1.** Nothing downstream starts while the repo and
+      the write-up disagree. *(Status as of the 4 Sep handoff: open, not
+      merged. Confirm before ticking.)*
+- [ ] **[v6] Add CI.** 25 tests and nothing runs them. The
+      water-potability repo already has the workflow to copy.
+- [ ] **[v6] Fix the `5244:1` NaN line in `02_collision.py`** — a ratio
+      taken against zero.
+- [ ] **[v6] Verify `_UNREPAIRED_BY_DESIGN` against the corpus.** The list
+      came from the appendix census, not from a scan. ~96 occurrences,
+      below resolution, but the provenance is wrong until scanned.
+- [ ] **Re-run the corruption 2×2** with the fixed `repair`. Fill
+      `A_SEED0_EXPECTED` from the old JSONL at full precision first: cell A
+      is dirty/dirty, so the boundary fix cannot touch it and it must
+      reproduce bit-for-bit. Keep the old numbers in LEARNINGS with the
+      reason they changed. **[v6]** Only the boundary changed;
+      `_REPAIRABLE_NUM` stays at 30–39/100–299 so the re-run isolates one
+      edit.
+- [ ] **[v6] Optional: isolate the `39` channel.** Zero the `39` column in
+      `coef_` and leave the vectorizer untouched — the token still consumes
+      norm share but stops contributing to the dot product. Three arms per
+      seed (A, A-zeroed, B) give two deltas that must telescope exactly; a
+      `39`-only repair arm (B′) would isolate cleanly at four arms per
+      seed. Decide whether the cost is worth it *before* building it.
+- [ ] **[v5] Markup strip experiment.** 5,241 rows (4.368%), class rate
+      0.0210 Sports vs 0.0746 Business — a **3.55×** spread against ~1.5×
+      for entity corruption. Clears the paired resolution, so pre-register:
       arms repair-only vs repair+strip, n=5,000, 5 seeds, prediction and
-      both interpretations written before any code.
+      both interpretations written before any code. **[v6]** The
+      containment audit behind this was tautological — `&lt;\s*/?[A-Za-z]`
+      requires an intact `&lt;`, which contains `lt;`, so both columns were
+      forced by construction. The 5,241 count is real; the audit tested
+      nothing.
 - [ ] **[v5] Syndication label-conflict rate** — extend the tail
       duplicate-title sample. Reported scoped to syndicated pairs.
 - [ ] **[v5] Blind ambiguity review** — 100 random rows, judgement
@@ -141,16 +216,20 @@ Remaining:
       not a ceiling.
 - [ ] **Near-duplicate detection.** Sparse `X @ X.T` on a mid-frequency
       blocking vocabulary — high-frequency terms excluded for cost (the
-      operation scales as the sum over terms of documents² ), low-frequency
+      operation scales as the sum over terms of documents²), low-frequency
       for precision (a high IDF weight lets one shared surname push two
       unrelated rows over threshold). **[v5] Calibrate recall against tail
       duplicate-title pairs on the description field only** — the title is
       the selection criterion and must stay outside the scored field.
       Precision from sampled pairs read by eye; the decision rule written
       before the first pair. Sweep the threshold and report the range
-      (METHOD 22). **Output is a count**, and the count decides removal:
-      head-of-distribution arithmetic suggested a few hundred rows, the
-      tail sample suggests thousands.
+      (METHOD 22). **Output is a count**, and the count decides removal.
+      **[v6] State the unit.** Three quantities were all being called
+      5,636: distinct titles appearing more than once **4,697**; rows
+      involved **10,333**; rows beyond the first of each **5,636**. The
+      head is 212 occurrences = **2.1% of rows involved**, not 3.8% — the
+      old figure divided occurrences by rows-beyond-first. The conclusion
+      strengthens: the tail carries more of the mass.
 - [ ] Class-conditional token analysis. Record the deployment assumption for
       `(AP)` / `Reuters` before deciding. Fit both ways, report the gap.
 - [ ] **Experiment A** — full resample, 10 seeds, n=120,000 and n=5,000.
@@ -167,6 +246,10 @@ Remaining:
       shape is real; a constant offset means one anchor is easier, and
       only the slope transfers.
 - [ ] Corruption rates on the quarantined 7,600 (distribution check only).
+
+**[v6] Order.** Merge → CI → 2×2 re-run → `dedup.py` → Experiment B →
+Experiment A. The re-run comes before dedup because a superseded transform
+sits underneath every result currently on the page.
 
 *Done when:* the floor is stated at both sizes, the learning curve exists,
 the label-noise estimates agree, and the difference between floors is
@@ -227,10 +310,14 @@ from the W6 export.
 ### W10–11 (2–15 Nov) — Write it
 
 - [ ] Three headline sections: the floor comparison plus learning curve; the
-      data-quality arc (**[v5]** 32.23% corruption, tested with a 2×2, found
-      to be token *collision* rather than added noise — a tested null on the
+      data-quality arc (32.23% corruption, tested with a 2×2, found to be
+      token *collision* rather than added noise — a tested null on the
       "borrowed signal" hypothesis); and the label-noise estimates with
       their scopes.
+- [ ] **[v6] A fourth section is now available: the correction arc.** A
+      right figure was corrected to a wrong one on the strength of two
+      dependent checks, and reverted two days later by a four-way count.
+      That is a better methods story than any of the metrics.
 - [ ] Two benchmark numbers: dirty-trained on the official dirty test
       (comparable to published work) and the clean model (honest production
       estimate), with artifact rates explaining the gap.
@@ -246,16 +333,25 @@ No new features. Stories out loud, four minutes each.
 
 ## Repository shape
 
+**[v6] As built on branch `frame`:**
+
 ```
-src/agnews/   data.py · clean.py · dedup.py · pipelines.py ·
-              evaluate.py · runlog.py
-scripts/      01_verify · 02_corruption · 03_dedup ·
-              04_experiment_a · 05_experiment_b · 06_label_review
-tests/        test_clean · test_dedup · test_evaluate ·
+src/agnews/   __init__ · data · clean · dedup · pipelines ·
+              evaluate · runlog
+scripts/      00_provenance · 01_verify · 02_collision ·
+              03_experiment_2x2
+tests/        conftest · test_clean · test_evaluate ·
               test_no_import_side_effects
 results/      *.jsonl — committed; the evidence
-docs/         ROADMAP · METHOD · LEARNINGS · data-appendix
+docs/         ROADMAP · METHOD · LEARNINGS · data-appendix · CORRECTIONS
 ```
+
+Still to come, in the week each is first needed: `03_dedup`,
+`04_experiment_a`, `05_experiment_b`, `06_label_review`, `test_dedup`.
+`dedup.py` exists but is deliberately empty; the design contract is in its
+docstring. `audit.py`, `collision.py`, `dup.py`, `inspect_corruption.py`,
+`floor.py`, `app/` and `train.py` are gone — `audit.py` in particular is
+what produced 38,679.
 
 `scripts/` holds the only `__main__` blocks. `runlog.py` stamps git SHA and
 library versions so METHOD 25 can't be skipped. `evaluate.py` owns the
@@ -304,7 +400,20 @@ schedule.
 12. **[v5] A rate belongs to the population it was sampled from.**
 13. **[v5] Removal is a measurement.** Count the affected fraction and
     compare it to your resolution before deleting anything.
-14. **[v5] An exact identity has no tolerance.** Off by one is a failure.
+14. **[v6] Publish the quantity the check runs on.** *(Replaces v5's "an
+    exact identity has no tolerance", which was drawn from a case that had
+    no error in it.)* An audit against rounded figures inherits their
+    tolerance. Counts are integers; rates at 4dp are not.
+15. **[v6] Two checks agreeing is evidence only if they are independent.**
+    Before treating agreement as support, ask what would have to be true
+    for both to be wrong together.
+16. **[v6] A correction is a claim**, and needs the provenance of the
+    figure it replaces.
+17. **[v6] A status is a claim too.** "Fixed" belongs in a document only
+    after the terminal says so.
+18. **[v6] Zero selected is not zero failed.** Guarded in `conftest.py`.
+19. **[v6] An audit whose result is forced by construction is not an
+    audit.**
 
 ---
 
@@ -316,15 +425,21 @@ schedule.
 - No figure that can't be reproduced from the data on the page.
 - **[v5]** No result carried forward across a change to the transform that
   produced it.
+- **[v6]** No "done" in a document that hasn't been read off a terminal in
+  the session that wrote it.
+- **[v6]** No mechanism claimed for an effect without sizing the population
+  it would have to act on.
 - If the project stops teaching you things, we stop early.
 
 ---
 
-## Before W3 opens (1–13 Sep)
+## Before W3 opens (5–13 Sep)
 
-1. Project one W2 leftovers — baseline re-run in the pinned CI environment,
+1. Merge PR #1 and add CI.
+2. Project one W2 leftovers — baseline re-run in the pinned CI environment,
    CI badge, leaky-vs-clean isolation.
-2. Does the `title` / `description` concatenation hold up? Joining them
+3. Re-run the 2×2; then `dedup.py`.
+4. Does the `title` / `description` concatenation hold up? Joining them
    asserts both fields carry the same kind of signal. Cheap W4 experiment.
    **[v5]** The separator is now fixed in `src/data.py`; the experiment is
    about whether the join is right, not which string joins it.
