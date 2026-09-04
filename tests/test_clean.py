@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from src.agnews.clean import CORRUPT, PATTERNS, repair
+from agnews.clean import CORRUPT, PATTERNS, repair
 
 # Only the new clean.py defines this. Step 4 runs the file against the OLD
 # one, where a hard import would be a collection error -- every test
